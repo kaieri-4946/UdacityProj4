@@ -9,20 +9,28 @@ from datetime import datetime
 
 # App Insights
 # TODO: Import required libraries for App Insights
+from opencensus.ext.azure import log_exporter,metrics_exporter, trace_exporter
+from opencensus.trace.tracer import Tracer
+from opencensus.trace.samplers import ProbabilitySampler
+from opencensus.ext.flask.flask_middleware import FlaskMiddleware
+
+conn = 'InstrumentationKey=b1a6c28d-d321-4fd4-984a-fd56e5efea7f'
 
 # Logging
-logger = # TODO: Setup logger
+logger = logging.getLogger(__name__)# TODO: Setup logger
+logger.addHandler(log_exporter.AzureLogHandler(connection_string=conn))
 
 # Metrics
-exporter = # TODO: Setup exporter
+exporter = metrics_exporter.new_metrics_exporter(connection_string=conn)# TODO: Setup exporter
 
 # Tracing
-tracer = # TODO: Setup tracer
+tracer = Tracer(exporter=trace_exporter.AzureExporter(connection_string=conn),
+                sampler=ProbabilitySampler(1))# TODO: Setup tracer
 
 app = Flask(__name__)
 
 # Requests
-middleware = # TODO: Setup flask middleware
+middleware = FlaskMiddleware(app,exporter=trace_exporter.AzureExporter(connection_string=conn),sampler=ProbabilitySampler(1))# TODO: Setup flask middleware
 
 # Load configurations from environment or config file
 app.config.from_pyfile('config_file.cfg')
@@ -61,8 +69,14 @@ def index():
         # Get current values
         vote1 = r.get(button1).decode('utf-8')
         # TODO: use tracer object to trace cat vote
+        with tracer.span(name='Cats Vote') as span:
+            print('Cats Vote')
+
+
         vote2 = r.get(button2).decode('utf-8')
         # TODO: use tracer object to trace dog vote
+        with tracer.span(name='Dogs Vote') as span:
+            print('Dogs Vote')
 
         # Return index with values
         return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
@@ -77,10 +91,12 @@ def index():
             vote1 = r.get(button1).decode('utf-8')
             properties = {'custom_dimensions': {'Cats Vote': vote1}}
             # TODO: use logger object to log cat vote
+            logger.info('Cats Vote', extra=properties)
 
             vote2 = r.get(button2).decode('utf-8')
             properties = {'custom_dimensions': {'Dogs Vote': vote2}}
             # TODO: use logger object to log dog vote
+            logger.info('Dogs Vote', extra=properties)
 
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
 
