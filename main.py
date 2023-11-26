@@ -19,6 +19,8 @@ conn = 'InstrumentationKey=b1a6c28d-d321-4fd4-984a-fd56e5efea7f'
 # Logging
 logger = logging.getLogger(__name__)# TODO: Setup logger
 logger.addHandler(log_exporter.AzureLogHandler(connection_string=conn))
+logger.addHandler(log_exporter.AzureEventHandler(connection_string=conn))
+logger.setLevel(logging.INFO)
 
 # Metrics
 exporter = metrics_exporter.new_metrics_exporter(connection_string=conn)# TODO: Setup exporter
@@ -108,7 +110,11 @@ def index():
 
             # Get current values
             vote1 = r.get(button1).decode('utf-8')
+            properties = {'custom_dimensions': {'Cats Vote': vote1}}
+            logger.info('Cats Vote', extra=properties)
             vote2 = r.get(button2).decode('utf-8')
+            properties = {'custom_dimensions': {'Dogs Vote': vote2}}
+            logger.info('Dogs Vote', extra=properties)
 
             # Return results
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
